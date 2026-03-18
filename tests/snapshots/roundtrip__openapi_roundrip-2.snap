@@ -1,0 +1,42 @@
+---
+source: tests/roundtrip.rs
+expression: spec
+---
+openapi: 3.0.0
+info:
+  title: Pets API
+  description: Pets API.
+  version: 1.0.0
+servers:
+  - url: "https://api.example.com"
+    description: Production server
+  - url: "http://localhost:8080/v1"
+    description: Local development server
+paths:
+  /pets:
+    get:
+      summary: Get Pets
+      description: returns a list of pets
+      operationId: getPets
+      responses:
+        "200":
+          description: A successful response with a greeting message.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pets"
+  /pet:
+    get:
+      summary: Get Pet
+      description: get a singular pet
+      operationId: getPet
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string

@@ -1,0 +1,30 @@
+---
+source: tests/roundtrip.rs
+expression: spec
+---
+openapi: 3.0.0
+info:
+  title: Hello World API
+  description: A simple API that returns a greeting.
+  version: 1.0.0
+servers:
+  - url: "https://api.example.com"
+    description: Production server
+  - url: "http://localhost:8080/v1"
+    description: Local development server
+paths:
+  /hello:
+    get:
+      summary: Get a greeting
+      description: Returns a simple greeting message.
+      operationId: getGreeting
+      responses:
+        "200":
+          description: A successful response with a greeting message.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
