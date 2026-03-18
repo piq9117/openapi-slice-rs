@@ -1,5 +1,5 @@
-use openapi_rs::openapi::openapi::{OpenApi};
 use glob::glob;
+use openapi_rs::openapi::openapi::OpenApi;
 
 #[test]
 fn openapi_roundrip() {

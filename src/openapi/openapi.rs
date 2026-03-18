@@ -7,6 +7,8 @@ pub struct OpenApi {
     pub info: Info,
     pub servers: Vec<Server>,
     pub paths: HashMap<String, PathItem>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub components: Option<Component>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -65,3 +67,8 @@ pub struct Schema {
     pub properties: Option<HashMap<String, Schema>>,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Component {
+    #[serde(default)]
+    pub schemas: Option<HashMap<String, SchemaOrRef>>,
+}

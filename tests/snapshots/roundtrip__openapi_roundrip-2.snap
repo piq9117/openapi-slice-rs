@@ -13,18 +13,6 @@ servers:
   - url: "http://localhost:8080/v1"
     description: Local development server
 paths:
-  /pets:
-    get:
-      summary: Get Pets
-      description: returns a list of pets
-      operationId: getPets
-      responses:
-        "200":
-          description: A successful response with a greeting message.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Pets"
   /pet:
     get:
       summary: Get Pet
@@ -40,3 +28,24 @@ paths:
                 properties:
                   name:
                     type: string
+  /pets:
+    get:
+      summary: Get Pets
+      description: returns a list of pets
+      operationId: getPets
+      responses:
+        "200":
+          description: A successful response with a greeting message.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pets"
+components:
+  schemas:
+    Pets:
+      type: array
+    Pet:
+      type: object
+      properties:
+        name:
+          type: string
