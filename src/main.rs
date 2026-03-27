@@ -1,12 +1,23 @@
-use serde_yaml;
-use std::fs::read_to_string;
+use clap::Parser;
+use std::fs;
 
 mod openapi;
-use openapi::openapi::OpenApi;
+mod slice;
+use openapi::decode_spec;
+use slice::{get_path, write_slice_to_file};
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let openapi_spec = read_to_string("./samples/all-of.yaml")?;
-    let decoded_spec: OpenApi = serde_yaml::from_str(&openapi_spec)?;
-    println!("{:#?}", decoded_spec);
-    Ok(())
+fn main() -> Result<(), std::io::Error> {
+    let args = Args::parse();
+    let openapi_spec = fs::read_to_string(args.filepath)?;
+    let decoded_spec = decode_spec(&openapi_spec);
+    let path_item = get_path(&decoded_spec, &args.path_item_name);
+    write_slice_to_file(&path_item, &args.output)
+}
+
+#[derive(Parser)]
+#[command(author, version, about)]
+struct Args {
+    path_item_name: String,
+    filepath: String,
+    output: String,
 }

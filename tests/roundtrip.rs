@@ -1,5 +1,5 @@
 use glob::glob;
-use openapi_rs::openapi::openapi::OpenApi;
+use openapi_rs::openapi::OpenApi;
 
 #[test]
 fn openapi_roundrip() {
@@ -10,7 +10,7 @@ fn openapi_roundrip() {
         let re_decoded = serde_yaml::from_str(&re_encoded).unwrap();
         assert_eq!(spec, re_decoded);
     }
-    // TODO 
+    // TODO
     // re-evaluate golden test.
     // first attempt with golden test using insta failed.
     // order is not preserved so the test never passes.
