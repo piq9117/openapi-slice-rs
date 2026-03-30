@@ -65,6 +65,9 @@ pub struct Schema {
     #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
     pub type_: Option<String>,
 
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub items: Option<Box<SchemaOrRef>>,
+
     #[serde(default, rename = "allOf", skip_serializing_if = "Vec::is_empty")]
     pub all_of: Vec<SchemaOrRef>,
 
