@@ -1,0 +1,36 @@
+openapi: 3.0.0
+info:
+  title: Pets API
+  description: Pets API.
+  version: 1.0.0
+servers:
+  - url: https://api.example.com
+    description: Production server
+  - url: http://localhost:8080/v1
+    description: Local development server
+paths:
+  /pets:
+    get:
+      summary: Get Pet
+      description: get a singular pet
+      operationId: getPet
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Pets"
+
+components:
+  schemas:
+    Pets:
+      type: array
+      items:
+        "$ref": "#/components/schemas/Pet"
+
+    Pet:
+      type: object
+      properties:
+        name:
+          type: string

@@ -15,23 +15,20 @@
     in
     {
 
-      # Initialize project with cargo init
-      # 
-      # Uncomment after initiating project
-      #
-      # packages = forAllSystems(system: 
-      #   let
-      #     pkgs = nixpkgsFor.${system};
-      #   in { 
-      #     default = pkgs.rustPlatform.buildRustPackage {
-      #       pname = "";
-      #       version = "0.0.0";
-      #       src = ./.;
-      #       cargoLock = {
-      #         lockFile = ./Cargo.lock;
-      #       };
-      #     };
-      #   });
+      packages = forAllSystems (system:
+        let
+          pkgs = nixpkgsFor.${system};
+        in
+        {
+          default = pkgs.rustPlatform.buildRustPackage {
+            pname = "";
+            version = "0.0.0";
+            src = ./.;
+            cargoLock = {
+              lockFile = ./Cargo.lock;
+            };
+          };
+        });
 
       devShells = forAllSystems (system:
         let
