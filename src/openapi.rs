@@ -27,7 +27,12 @@ pub struct Server {
 
 #[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq)]
 pub struct PathItem {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub get: Option<Operation>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub post: Option<Operation>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub put: Option<Operation>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq)]

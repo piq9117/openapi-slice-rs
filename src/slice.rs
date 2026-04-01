@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use serde_yaml;
 
 use crate::openapi::{
-    Component, Info, OpenApi, PathItem, SchemaOrRef,
+    Component, Info, OpenApi, Operation, PathItem, SchemaOrRef,
     SchemaOrRef::{Inline, Ref},
     Server,
 };
@@ -30,53 +30,101 @@ pub fn get_path<'a>(spec: &'a OpenApi, pathname: &str) -> OpenApiSlice {
         path_item_slice.insert(pathname.to_string(), path_item.clone());
     }
 
+    let comps = vec![
+        find_components(
+            path.cloned(),
+            |path_item| path_item.get,
+            spec.components.clone(),
+            "200",
+            "application/json",
+        ),
+        find_components(
+            path.clone().cloned(),
+            |path_item| path_item.post,
+            spec.components.clone(),
+            "200",
+            "application/json",
+        ),
+    ];
+
     OpenApiSlice {
         openapi: spec.openapi.clone(),
         info: spec.info.clone(),
         servers: spec.servers.clone(),
         path: path_item_slice,
-        // TODO components need to depend on whether there is a reference
-        components: find_components(path.cloned(), spec.components.clone()),
+        components: append_components(comps),
     }
 }
 
-// find components from ref
-fn find_components(
-    path_item: Option<PathItem>,
-    components: Option<Component>,
-) -> Option<Component> {
-    let item = path_item?;
-    let get = item.get?;
-    let get_responses_schemas: SchemaOrRef = get
+fn get_response_schemas<PathItemAccessor>(
+    path_item: PathItem,
+    accessor: PathItemAccessor,
+    key: &str,
+    media_type: &str,
+) -> Option<SchemaOrRef>
+where
+    PathItemAccessor: Fn(PathItem) -> Option<Operation>,
+{
+    accessor(path_item)?
         .responses?
-        .get("200")?
+        .get(key)?
         .to_owned()
         .content?
-        .get("application/json")?
+        .get(media_type)?
         .schema
-        .to_owned()?;
-    let schema = HashMap::new();
+        .to_owned()
+}
 
-    fn mk_component(
-        mut new_schema: HashMap<String, SchemaOrRef>,
-        str_ref: &str,
-        schema_or_ref: SchemaOrRef,
-    ) -> Option<Component> {
-        match &schema_or_ref {
-            Ref { r#ref } => {
-                let next_ref = r#ref.split('/').last()?;
-                mk_component(new_schema, next_ref, schema_or_ref.to_owned())
-            }
-            Inline(inline_schema) => {
-                new_schema.insert(str_ref.to_string(), Inline(inline_schema.to_owned()));
-                Some(Component {
-                    schemas: Some(new_schema.to_owned()),
-                })
+fn mk_component(
+    mut new_schema: HashMap<String, SchemaOrRef>,
+    str_ref: &str,
+    schema_or_ref: SchemaOrRef,
+) -> Option<Component> {
+    match &schema_or_ref {
+        Ref { r#ref } => {
+            let next_ref = r#ref.split('/').last()?;
+            mk_component(new_schema, next_ref, schema_or_ref.to_owned())
+        }
+        Inline(inline_schema) => {
+            new_schema.insert(str_ref.to_string(), Inline(inline_schema.to_owned()));
+            Some(Component {
+                schemas: Some(new_schema.to_owned()),
+            })
+        }
+    }
+}
+
+fn append_components(components: Vec<Option<Component>>) -> Option<Component> {
+    let mut root_schema = HashMap::new();
+    for component in components {
+        if let Some(c) = component {
+            if let Some(s) = c.schemas {
+                root_schema.extend(s)
             }
         }
     }
 
-    if let Ref { r#ref } = &get_responses_schemas {
+    Some(Component {
+        schemas: Some(root_schema),
+    })
+}
+
+// find components from ref
+fn find_components<PathItemAccessor>(
+    path_item: Option<PathItem>,
+    path_item_accessor: PathItemAccessor,
+    components: Option<Component>,
+    response_key: &str,
+    media_type: &str,
+) -> Option<Component>
+where
+    PathItemAccessor: Fn(PathItem) -> Option<Operation>,
+{
+    let item = path_item?;
+    let response_schema = get_response_schemas(item, path_item_accessor, response_key, media_type)?;
+    let schema = HashMap::new();
+
+    if let Ref { r#ref } = &response_schema {
         let str_ref: &str = r#ref.split('/').last()?;
         let schema_or_ref: SchemaOrRef = components.clone()?.schemas?.get(str_ref)?.to_owned();
 
@@ -84,7 +132,7 @@ fn find_components(
 
         let schema = component_slice.schemas.as_mut()?;
 
-        for (key, val) in schema.clone().iter() {
+        for (_key, val) in schema.clone().iter() {
             match val {
                 Inline(inline) => {
                     let items_schema_or_ref: SchemaOrRef = *inline.items.to_owned()?;
