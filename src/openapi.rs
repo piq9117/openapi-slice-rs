@@ -21,8 +21,8 @@ pub struct Info {
 
 #[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq)]
 pub struct Server {
-    pub url: String,
-    pub description: String,
+    pub url: Option<String>,
+    pub description: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq)]
