@@ -211,9 +211,10 @@ fn iter_schema_append(
             if let Inline(inline) = sc {
                 // items field
                 if let Some(i) = &inline.items {
-                    if let Ref { r#ref } = &**i {
-                        stack.push(get_ref_key(r#ref).to_string());
-                    }
+                    push_ref_from_schema_or_ref(i, &mut stack);
+                    // if let Ref { r#ref } = &**i {
+                    //     stack.push(get_ref_key(r#ref).to_string());
+                    // }
                 }
 
                 // anyOf field
