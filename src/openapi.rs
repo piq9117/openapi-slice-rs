@@ -78,6 +78,9 @@ pub struct Schema {
     #[serde(default, rename = "allOf", skip_serializing_if = "Vec::is_empty")]
     pub all_of: Vec<SchemaOrRef>,
 
+    #[serde(default, rename = "anyOf", skip_serializing_if = "Vec::is_empty")]
+    pub any_of: Vec<SchemaOrRef>,
+
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub required: Vec<String>,
 
