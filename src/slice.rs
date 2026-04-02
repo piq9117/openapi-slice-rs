@@ -169,6 +169,31 @@ fn append_components(components: Vec<Option<Component>>) -> Option<Component> {
     })
 }
 
+fn push_ref_from_schema_or_ref(schema_or_ref: &SchemaOrRef, stack: &mut Vec<String>) {
+    match schema_or_ref {
+        Ref { r#ref } => {
+            stack.push(get_ref_key(r#ref).to_string());
+        }
+        Inline(inline) => {
+            if let Some(i) = &inline.items {
+                if let Ref { r#ref } = &**i {
+                    stack.push(get_ref_key(r#ref).to_string());
+                }
+            }
+
+            for a in &inline.any_of {
+                push_ref_from_schema_or_ref(a, stack);
+            }
+
+            if let Some(props) = &inline.properties {
+                for p in props.values() {
+                    push_ref_from_schema_or_ref(p, stack);
+                }
+            }
+        }
+    }
+}
+
 fn iter_schema_append(
     key: &str,
     source_schema: HashMap<String, SchemaOrRef>,
@@ -183,82 +208,27 @@ fn iter_schema_append(
         if let Some(sc) = source_schema.get(&k) {
             new_schema.insert(k.clone(), sc.clone());
 
-            match sc {
-                Ref { r#ref } => {
-                    let inner_key = get_ref_key(r#ref);
-                    stack.push(inner_key.to_string())
-                }
-                Inline(inline) => {
-                    let items = inline.items.clone();
-
-                    if let Some(i) = items {
-                        if let Ref { r#ref } = *i {
-                            let inner_key = get_ref_key(&r#ref);
-                            stack.push(inner_key.to_string())
-                        }
-                    }
-
-                    for any_of in &inline.any_of {
-                        match any_of {
-                            Ref { r#ref } => {
-                                let inner_key = get_ref_key(r#ref);
-                                stack.push(inner_key.to_string())
-                            }
-                            Inline(inline) => {
-                                let items = inline.items.clone();
-
-                                if let Some(i) = items {
-                                    if let Ref { r#ref } = *i {
-                                        let inner_key = get_ref_key(&r#ref);
-                                        stack.push(inner_key.to_string())
-                                    }
-                                }
-
-                                if let Some(properties) = &inline.properties {
-                                    for property in properties.values() {
-                                        match property {
-                                            Ref { r#ref } => {
-                                                let inner_key = get_ref_key(r#ref);
-                                                stack.push(inner_key.to_string())
-                                            }
-                                            Inline(inline) => {
-                                                let items = inline.items.clone();
-
-                                                if let Some(i) = items {
-                                                    if let Ref { r#ref } = *i {
-                                                        let inner_key = get_ref_key(&r#ref);
-                                                        stack.push(inner_key.to_string())
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    if let Some(properties) = &inline.properties {
-                        for property in properties.values() {
-                            match property {
-                                Ref { r#ref } => {
-                                    let inner_key = get_ref_key(r#ref);
-                                    stack.push(inner_key.to_string())
-                                }
-                                Inline(inline) => {
-                                    let items = inline.items.clone();
-
-                                    if let Some(i) = items {
-                                        if let Ref { r#ref } = *i {
-                                            let inner_key = get_ref_key(&r#ref);
-                                            stack.push(inner_key.to_string())
-                                        }
-                                    }
-                                }
-                            }
-                        }
+            if let Inline(inline) = sc {
+                // items field
+                if let Some(i) = &inline.items {
+                    if let Ref { r#ref } = &**i {
+                        stack.push(get_ref_key(r#ref).to_string());
                     }
                 }
+
+                // anyOf field
+                for any_of in &inline.any_of {
+                    push_ref_from_schema_or_ref(any_of, &mut stack);
+                }
+
+                // properties field
+                if let Some(prop) = &inline.properties {
+                    for p in prop.values() {
+                        push_ref_from_schema_or_ref(p, &mut stack);
+                    }
+                }
+            } else if let Ref { r#ref } = sc {
+                stack.push(get_ref_key(r#ref).to_string());
             }
         }
     }
