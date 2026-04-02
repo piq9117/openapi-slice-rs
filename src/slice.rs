@@ -175,13 +175,15 @@ fn push_ref_from_schema_or_ref(schema_or_ref: &SchemaOrRef, stack: &mut Vec<Stri
             stack.push(get_ref_key(r#ref).to_string());
         }
         Inline(inline) => {
-            if let Some(i) = &inline.items {
-                if let Ref { r#ref } = &**i {
-                    stack.push(get_ref_key(r#ref).to_string());
-                }
+            if let Some(item) = &inline.items {
+                push_ref_from_schema_or_ref(item, stack);
             }
 
             for a in &inline.any_of {
+                push_ref_from_schema_or_ref(a, stack);
+            }
+
+            for a in &inline.all_of {
                 push_ref_from_schema_or_ref(a, stack);
             }
 
@@ -212,9 +214,6 @@ fn iter_schema_append(
                 // items field
                 if let Some(i) = &inline.items {
                     push_ref_from_schema_or_ref(i, &mut stack);
-                    // if let Ref { r#ref } = &**i {
-                    //     stack.push(get_ref_key(r#ref).to_string());
-                    // }
                 }
 
                 // anyOf field
