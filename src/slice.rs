@@ -212,6 +212,27 @@ fn iter_schema_append(
                                         stack.push(inner_key.to_string())
                                     }
                                 }
+
+                                if let Some(properties) = &inline.properties {
+                                    for property in properties.values() {
+                                        match property {
+                                            Ref { r#ref } => {
+                                                let inner_key = get_ref_key(r#ref);
+                                                stack.push(inner_key.to_string())
+                                            }
+                                            Inline(inline) => {
+                                                let items = inline.items.clone();
+
+                                                if let Some(i) = items {
+                                                    if let Ref { r#ref } = *i {
+                                                        let inner_key = get_ref_key(&r#ref);
+                                                        stack.push(inner_key.to_string())
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
