@@ -125,6 +125,28 @@ pub struct Schema {
 pub struct Component {
     #[serde(default)]
     pub schemas: Option<HashMap<String, SchemaOrRef>>,
+
+    #[serde(
+        default,
+        rename = "securitySchemes",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub security_schemes: Option<HashMap<String, SecurityScheme>>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
+pub struct SecurityScheme {
+    #[serde(default, rename = "type", skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scheme: Option<String>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub in_: Option<String>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
 }
 
 #[allow(dead_code)]

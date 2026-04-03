@@ -8,7 +8,7 @@ use serde_yaml;
 use crate::openapi::{
     Component, Info, OpenApi, Operation, PathItem, SchemaOrRef,
     SchemaOrRef::{Inline, Ref},
-    Server,
+    SecurityScheme, Server,
 };
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -32,30 +32,30 @@ pub fn get_path<'a>(spec: &'a OpenApi, pathname: &str) -> OpenApiSlice {
     }
 
     // TODO refactor when I'm less retarded about rust.
-    let comps: Vec<Option<Component>> = vec![
+    let comps: Vec<Option<HashMap<String, SchemaOrRef>>> = vec![
         // get
-        find_components(
+        find_schemas(
             path.cloned(),
             |path_item| path_item.get,
             spec.components.clone(),
             "default",
             "application/json",
         ),
-        find_components(
+        find_schemas(
             path.cloned(),
             |path_item| path_item.get,
             spec.components.clone(),
             "200",
             "application/json",
         ),
-        find_components(
+        find_schemas(
             path.cloned(),
             |path_item| path_item.get,
             spec.components.clone(),
             "404",
             "application/json",
         ),
-        find_components(
+        find_schemas(
             path.cloned(),
             |path_item| path_item.get,
             spec.components.clone(),
@@ -63,28 +63,28 @@ pub fn get_path<'a>(spec: &'a OpenApi, pathname: &str) -> OpenApiSlice {
             "application/json",
         ),
         // post
-        find_components(
+        find_schemas(
             path.cloned(),
             |path_item| path_item.post,
             spec.components.clone(),
             "default",
             "application/json",
         ),
-        find_components(
+        find_schemas(
             path.cloned(),
             |path_item| path_item.post,
             spec.components.clone(),
             "200",
             "application/json",
         ),
-        find_components(
+        find_schemas(
             path.cloned(),
             |path_item| path_item.post,
             spec.components.clone(),
             "404",
             "application/json",
         ),
-        find_components(
+        find_schemas(
             path.cloned(),
             |path_item| path_item.post,
             spec.components.clone(),
@@ -92,28 +92,28 @@ pub fn get_path<'a>(spec: &'a OpenApi, pathname: &str) -> OpenApiSlice {
             "application/json",
         ),
         // put
-        find_components(
+        find_schemas(
             path.cloned(),
             |path_item| path_item.put,
             spec.components.clone(),
             "default",
             "application/json",
         ),
-        find_components(
+        find_schemas(
             path.cloned(),
             |path_item| path_item.put,
             spec.components.clone(),
             "200",
             "application/json",
         ),
-        find_components(
+        find_schemas(
             path.cloned(),
             |path_item| path_item.put,
             spec.components.clone(),
             "404",
             "application/json",
         ),
-        find_components(
+        find_schemas(
             path.cloned(),
             |path_item| path_item.put,
             spec.components.clone(),
@@ -127,7 +127,12 @@ pub fn get_path<'a>(spec: &'a OpenApi, pathname: &str) -> OpenApiSlice {
         info: spec.info.clone(),
         servers: spec.servers.clone(),
         paths: path_item_slice,
-        components: append_components(comps),
+        components: append_schemas(
+            spec.components
+                .clone()
+                .and_then(|component| component.security_schemes),
+            comps,
+        ),
     }
 }
 
@@ -167,18 +172,21 @@ fn get_ref_key(schema_ref: &str) -> &str {
     schema_ref.split('/').last().unwrap_or("").trim()
 }
 
-fn append_components(components: Vec<Option<Component>>) -> Option<Component> {
-    let mut root_schema = HashMap::new();
-    for component in components {
-        if let Some(c) = component {
-            if let Some(s) = c.schemas {
-                root_schema.extend(s)
-            }
-        }
-    }
+fn append_schemas(
+    security_scheme: Option<HashMap<String, SecurityScheme>>,
+    schemas: Vec<Option<HashMap<String, SchemaOrRef>>>,
+) -> Option<Component> {
+    let new_schema = schemas.into_iter().fold(
+        HashMap::new(),
+        |mut acc: HashMap<String, SchemaOrRef>, schema| {
+            acc.extend(schema.unwrap_or_default());
+            acc
+        },
+    );
 
     Some(Component {
-        schemas: Some(root_schema),
+        security_schemes: security_scheme,
+        schemas: Some(new_schema),
     })
 }
 
@@ -253,13 +261,13 @@ fn iter_schema_append(
     new_schema
 }
 
-fn find_components(
+fn find_schemas(
     path_item: Option<PathItem>,
     path_item_accessor: fn(PathItem) -> Option<Operation>,
     source_components: Option<Component>,
     response_key: &str,
     media_type: &str,
-) -> Option<Component> {
+) -> Option<HashMap<String, SchemaOrRef>> {
     let item = path_item?;
 
     let response_schema: Option<SchemaOrRef> =
@@ -268,7 +276,7 @@ fn find_components(
     let request_body_schema: Option<SchemaOrRef> =
         get_request_body_schema(item.clone(), path_item_accessor, media_type);
 
-    let source_schema = source_components?.schemas?;
+    let source_schema = source_components.clone()?.schemas?;
 
     let request: HashMap<String, SchemaOrRef> = if let Some(Ref { r#ref }) = request_body_schema {
         let key = get_ref_key(&r#ref);
@@ -284,12 +292,8 @@ fn find_components(
         HashMap::new()
     };
 
-    Some(Component {
-        schemas: Some({
-            response.extend(request);
-            response
-        }),
-    })
+    response.extend(request);
+    Some(response)
 }
 
 #[allow(dead_code)]
